@@ -9,7 +9,9 @@ enum HttpServerOptionDescriptions {
   UseQueue = 'Enables RabbitMQ',
   CardanoNodeConfigPath = 'Cardano node config path',
   CacheTtl = 'Cache TTL in minutes between 1 and 2880',
-  EpochPollInterval = 'Epoch poll interval'
+  EpochPollInterval = 'Epoch poll interval',
+  ServiceDiscoveryBackoffFactor = 'Exponential backoff factor for service discovery',
+  ServiceDiscoverBackoffTimeout = 'Exponential backoff max timeout for service discovery'
 }
 
 export type ProgramOptionDescriptions = CommonOptionDescriptions | HttpServerOptionDescriptions;
