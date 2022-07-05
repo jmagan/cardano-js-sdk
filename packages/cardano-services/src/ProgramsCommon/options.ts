@@ -9,11 +9,9 @@ export interface CommonProgramOptions {
   loggerMinSeverity?: LogLevel;
   ogmiosUrl?: URL;
   rabbitmqUrl?: URL;
-}
-
-export interface SrvProgramOptions {
-  postgresSrvName?: string;
-  postgresName?: string;
-  postgresUser?: string;
-  postgresPassword?: string;
+  ogmiosSrvServiceName?: string;
+  rabbitmqSrvServiceName?: string;
+  serviceDiscoveryBackoffFactor?: number;
+  serviceDiscoveryTimeout?: number;
+  cacheTtl: number;
 }
