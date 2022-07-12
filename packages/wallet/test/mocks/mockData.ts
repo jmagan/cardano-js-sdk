@@ -1,3 +1,4 @@
+import { AssetId } from '@cardano-sdk/util-dev';
 import { Cardano, EpochRewards } from '@cardano-sdk/core';
 
 export const rewardAccount = Cardano.RewardAccount('stake_test1up7pvfq8zn4quy45r2g572290p9vf99mr9tn7r9xrgy2l2qdsf58d');
@@ -67,3 +68,41 @@ export const rewardsHistory2 = new Map<Cardano.RewardAccount, EpochRewards[]>([
   ]
 ]);
 export const rewardAccountBalance2 = rewardAccountBalance + 1n;
+
+export const utxosWithLowCoins: Cardano.Utxo[] = [
+  [
+    {
+      address: Cardano.Address(
+        'addr_test1qzs0umu0s2ammmpw0hea0w2crtcymdjvvlqngpgqy76gpfnuzcjqw982pcftgx53fu5527z2cj2tkx2h8ux2vxsg475qp3y3vz'
+      ),
+      index: 0,
+      txId: Cardano.TransactionId('c7c0973c6bbf1a04a9f306da7814b4fa564db649bf48b0bd93c273bd03143547')
+    },
+    {
+      address: Cardano.Address(
+        'addr_test1qq585l3hyxgj3nas2v3xymd23vvartfhceme6gv98aaeg9muzcjqw982pcftgx53fu5527z2cj2tkx2h8ux2vxsg475q2g7k3g'
+      ),
+      value: {
+        assets: new Map([[AssetId.TSLA, 15n]]),
+        coins: 3_289_566n
+      }
+    }
+  ],
+  [
+    {
+      address: Cardano.Address(
+        'addr_test1qzs0umu0s2ammmpw0hea0w2crtcymdjvvlqngpgqy76gpfnuzcjqw982pcftgx53fu5527z2cj2tkx2h8ux2vxsg475qp3y3vz'
+      ),
+      index: 0,
+      txId: Cardano.TransactionId('c7c0973c6bbf1a04a9f306da7814b4fa564db649bf48b0bd93c273bd03143547')
+    },
+    {
+      address: Cardano.Address(
+        'addr_test1qq585l3hyxgj3nas2v3xymd23vvartfhceme6gv98aaeg9muzcjqw982pcftgx53fu5527z2cj2tkx2h8ux2vxsg475q2g7k3g'
+      ),
+      value: {
+        coins: 1_000_000n
+      }
+    }
+  ]
+];
