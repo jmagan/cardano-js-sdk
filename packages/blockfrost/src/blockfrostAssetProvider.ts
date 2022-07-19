@@ -6,6 +6,13 @@ import { BlockFrostAPI, Responses } from '@blockfrost/blockfrost-js';
 import { blockfrostMetadataToTxMetadata, fetchSequentially, toProviderError } from './util';
 import omit from 'lodash/omit';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getIcon = (logo?: string | null, image?: string | any[]) => {
+  if (typeof logo === 'string') return logo;
+  if (typeof image === 'string') return image;
+  return Array.isArray(image) && image.every((item) => typeof item === 'string') ? image[0] : undefined;
+};
+
 const mapMetadata = (
   onChain: Responses['asset']['onchain_metadata'],
   offChain: Responses['asset']['metadata']
@@ -14,14 +21,9 @@ const mapMetadata = (
   if (Object.values(metadata).every((value) => value === undefined || value === null)) return null;
   return {
     ...replaceNullsWithUndefineds(omit(metadata, ['logo', 'image'])),
-    desc: metadata.description,
+    desc: Array.isArray(metadata.description) ? metadata.description[0] : metadata.description,
     // The other type option is any[] - not sure what it means, omitting if no string.
-    icon:
-      typeof metadata.logo === 'string'
-        ? metadata.logo
-        : typeof metadata.image === 'string'
-        ? metadata.image
-        : undefined
+    icon: getIcon(metadata.logo, metadata.image)
   };
 };
 
