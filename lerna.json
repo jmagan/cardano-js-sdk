@@ -1,0 +1,21 @@
+{
+  "packages": [
+    "packages/*"
+  ],
+  "command": {
+    "version": {
+      "message": "ci: publish [skip actions]",
+      "preid": "nightly",
+      "includeMergedTags": true,
+      "noCommitHooks": true,
+      "conventionalCommits": true
+    }
+  },
+  "changelogPreset": {
+    "name": "conventionalcommits",
+    "preMajor": true
+  },
+  "npmClient": "yarn",
+  "useWorkspaces": true,
+  "version": "independent"
+}
