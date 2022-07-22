@@ -47,7 +47,7 @@ export interface TransactionsTrackerProps {
 }
 
 export interface TransactionsTrackerInternals {
-  transactionsSource$?: Observable<Cardano.TxAlonzo[]>;
+  transactionsSource$?: Observable<{ transactions: Cardano.TxAlonzo[] }>;
 }
 
 export const createAddressTransactionsProvider = (
@@ -56,19 +56,19 @@ export const createAddressTransactionsProvider = (
   retryBackoffConfig: RetryBackoffConfig,
   tipBlockHeight$: Observable<number>,
   store: OrderedCollectionStore<Cardano.TxAlonzo>
-): Observable<Cardano.TxAlonzo[]> => {
+): Observable<{ transactions: Cardano.TxAlonzo[] }> => {
   const storedTransactions$ = store.getAll().pipe(share());
   return concat(
-    storedTransactions$,
+    storedTransactions$.pipe(map((transactions) => ({ transactions }))),
     combineLatest([addresses$, storedTransactions$.pipe(defaultIfEmpty([] as Cardano.TxAlonzo[]))]).pipe(
       switchMap(([addresses, storedTransactions]) => {
-        let localTransactions = [...storedTransactions];
-        return coldObservableProvider({
+        let localTransactions: Cardano.TxAlonzo[] = [...storedTransactions];
+        return coldObservableProvider<{ transactions: Cardano.TxAlonzo[] }>({
           // Do not re-fetch transactions twice on load when tipBlockHeight$ loads from storage first
           // It should also help when using poor internet connection.
           // Caveat is that local transactions might get out of date...
           combinator: exhaustMap,
-          equals: transactionsEquals,
+          equals: ({ transactions: a }, { transactions: b }) => transactionsEquals(a, b),
           provider: async () => {
             // eslint-disable-next-line no-constant-condition
             while (true) {
@@ -88,7 +88,7 @@ export const createAddressTransactionsProvider = (
               } else {
                 localTransactions = unionBy(localTransactions, newTransactions, (tx) => tx.id);
                 store.setAll(localTransactions);
-                return localTransactions;
+                return { transactions: localTransactions };
               }
             }
           },
@@ -140,7 +140,7 @@ export const createTransactionsTracker = (
     inFlightTransactionsStore: newTransactionsStore
   }: TransactionsTrackerProps,
   {
-    transactionsSource$ = new TrackerSubject<Cardano.TxAlonzo[]>(
+    transactionsSource$ = new TrackerSubject<{ transactions: Cardano.TxAlonzo[] }>(
       createAddressTransactionsProvider(
         chainHistoryProvider,
         addresses$,
@@ -156,7 +156,9 @@ export const createTransactionsTracker = (
     newSubmitting$
   ).pipe(share());
 
-  const historicalTransactions$ = createHistoricalTransactionsTrackerSubject(transactionsSource$);
+  const historicalTransactions$ = createHistoricalTransactionsTrackerSubject(
+    transactionsSource$.pipe(map(({ transactions }) => transactions))
+  );
   const txConfirmed$ = (tx: Cardano.NewTxAlonzo) =>
     newTransactions$(historicalTransactions$).pipe(
       filter((historyTx) => historyTx.id === tx.id),

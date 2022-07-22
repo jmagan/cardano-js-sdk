@@ -111,10 +111,10 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('----|');
         const submitting$ = hot('-a--|', { a: outgoingTx });
         const pending$ = hot('--a-|', { a: outgoingTx });
-        const transactionsSource$ = hot<Cardano.TxAlonzo[]>('a-bc|', {
-          a: [],
-          b: [incomingTx],
-          c: [incomingTx, outgoingTx]
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('a-bc|', {
+          a: { transactions: [] },
+          b: { transactions: [incomingTx] },
+          c: { transactions: [incomingTx, outgoingTx] }
         });
         const confirmedSubscription = '--^--'; // regression: subscribing after submitting$ emits
         const transactionsTracker = createTransactionsTracker(
@@ -158,7 +158,7 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('----a|', { a: tip });
         const submitting$ = hot('-a---|', { a: tx });
         const pending$ = hot('---a-|', { a: tx });
-        const transactionsSource$ = hot<Cardano.TxAlonzo[]>('-----|');
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('-----|');
         const failedSubscription = '--^---'; // regression: subscribing after submitting$ emits
         const transactionsTracker = createTransactionsTracker(
           {
@@ -198,7 +198,7 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('----|');
         const submitting$ = cold('-a--|', { a: tx });
         const pending$ = cold('--a-|', { a: tx });
-        const transactionsSource$ = cold<Cardano.TxAlonzo[]>('----|');
+        const transactionsSource$ = cold<{ transactions: Cardano.TxAlonzo[] }>('----|');
         const failedToSubmit$ = hot<FailedTx>('---a|', {
           a: { reason: TransactionFailure.FailedToSubmit, tx }
         });
@@ -244,7 +244,7 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('|');
         const submitting$ = hot('--a|', { a: outgoingTx });
         const pending$ = hot<Cardano.TxAlonzo>('|');
-        const transactionsSource$ = hot<Cardano.TxAlonzo[]>('|');
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('|');
 
         const transactionsTracker = createTransactionsTracker(
           {
@@ -300,10 +300,10 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('----|');
         const submitting$ = hot<Cardano.NewTxAlonzo>('----|');
         const pending$ = hot<Cardano.TxAlonzo>('----|');
-        const transactionsSource$ = hot<Cardano.TxAlonzo[]>('a-bc|', {
-          a: [],
-          b: [incomingTx],
-          c: [incomingTx, outgoingTx]
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('a-bc|', {
+          a: { transactions: [] },
+          b: { transactions: [incomingTx] },
+          c: { transactions: [incomingTx, outgoingTx] }
         });
 
         const transactionsTracker = createTransactionsTracker(
@@ -371,9 +371,9 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('-----|');
         const submitting$ = hot<Cardano.NewTxAlonzo>('--a--|', { a: outgoingTx });
         const pending$ = hot<Cardano.TxAlonzo>('-----|');
-        const transactionsSource$ = hot<Cardano.TxAlonzo[]>('a---b|', {
-          a: [],
-          b: [incomingTx]
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('a---b|', {
+          a: { transactions: [] },
+          b: { transactions: [incomingTx] }
         });
 
         const transactionsTracker = createTransactionsTracker(
