@@ -36,7 +36,7 @@ to be completed._
 - HTTP API exposed using a custom API URL
 
 ``` console
-./dist/cli.js \
+./dist/cjs/cli.js \
   start-server \
     --api-url http://localhost:6000 \
     --cardano-node-config-path ./config/cardano-node/config.json \
@@ -56,7 +56,7 @@ to be completed._
 - Prometheus metrics exporter enabled at http://localhost:6000/metrics
 
 ``` console
-./dist/cli.js \
+./dist/cjs/cli.js \
   start-server \
     --api-url http://localhost:6000 \
     --cardano-node-config-path ./config/cardano-node/config.json \
@@ -71,7 +71,7 @@ to be completed._
     asset,chain-history,stake-pool,tx-submit,network-info,utxo
 ```
 ``` console
-./dist/cli.js \
+./dist/cjs/cli.js \
   start-worker \
     --ogmios-srv-service-name  some-domain-for-ogmios \
     --rabbitmq-srv-service-name some-domain-for-rabbitmq
