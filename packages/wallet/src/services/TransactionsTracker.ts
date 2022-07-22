@@ -47,7 +47,7 @@ export interface TransactionsTrackerProps {
 }
 
 export interface TransactionsTrackerInternals {
-  transactionsSource$?: Observable<{ transactions: Cardano.TxAlonzo[] }>;
+  transactionsSource$?: Observable<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }>;
 }
 
 export const createAddressTransactionsProvider = (
@@ -56,20 +56,22 @@ export const createAddressTransactionsProvider = (
   retryBackoffConfig: RetryBackoffConfig,
   tipBlockHeight$: Observable<number>,
   store: OrderedCollectionStore<Cardano.TxAlonzo>
-): Observable<{ transactions: Cardano.TxAlonzo[] }> => {
+): Observable<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }> => {
   const storedTransactions$ = store.getAll().pipe(share());
   return concat(
-    storedTransactions$.pipe(map((transactions) => ({ transactions }))),
+    storedTransactions$.pipe(map((transactions) => ({ rollback: [] as Cardano.TxAlonzo[], transactions }))),
     combineLatest([addresses$, storedTransactions$.pipe(defaultIfEmpty([] as Cardano.TxAlonzo[]))]).pipe(
       switchMap(([addresses, storedTransactions]) => {
         let localTransactions: Cardano.TxAlonzo[] = [...storedTransactions];
-        return coldObservableProvider<{ transactions: Cardano.TxAlonzo[] }>({
+        return coldObservableProvider<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }>({
           // Do not re-fetch transactions twice on load when tipBlockHeight$ loads from storage first
           // It should also help when using poor internet connection.
           // Caveat is that local transactions might get out of date...
           combinator: exhaustMap,
-          equals: ({ transactions: a }, { transactions: b }) => transactionsEquals(a, b),
+          equals: ({ transactions: a, rollback: rA }, { transactions: b, rollback: rB }) =>
+            transactionsEquals(a, b) && transactionsEquals(rA, rB),
           provider: async () => {
+            let rollback: Cardano.TxAlonzo[] = [];
             // eslint-disable-next-line no-constant-condition
             while (true) {
               const lastStoredTransaction: Cardano.TxAlonzo | undefined =
@@ -81,6 +83,12 @@ export const createAddressTransactionsProvider = (
               const duplicateTransactions =
                 lastStoredTransaction && intersectionBy(localTransactions, newTransactions, (tx) => tx.id);
               if (typeof duplicateTransactions !== 'undefined' && duplicateTransactions.length === 0) {
+                rollback = [
+                  ...rollback,
+                  ...localTransactions.filter(
+                    ({ blockHeader: { blockNo } }) => blockNo >= lastStoredTransaction.blockHeader.blockNo
+                  )
+                ];
                 // Rollback by 1 block, try again in next loop iteration
                 localTransactions = localTransactions.filter(
                   ({ blockHeader: { blockNo } }) => blockNo < lastStoredTransaction.blockHeader.blockNo
@@ -88,7 +96,7 @@ export const createAddressTransactionsProvider = (
               } else {
                 localTransactions = unionBy(localTransactions, newTransactions, (tx) => tx.id);
                 store.setAll(localTransactions);
-                return { transactions: localTransactions };
+                return { rollback, transactions: localTransactions };
               }
             }
           },
@@ -140,7 +148,7 @@ export const createTransactionsTracker = (
     inFlightTransactionsStore: newTransactionsStore
   }: TransactionsTrackerProps,
   {
-    transactionsSource$ = new TrackerSubject<{ transactions: Cardano.TxAlonzo[] }>(
+    transactionsSource$ = new TrackerSubject(
       createAddressTransactionsProvider(
         chainHistoryProvider,
         addresses$,
@@ -228,6 +236,7 @@ export const createTransactionsTracker = (
       pending$,
       submitting$
     },
+    rollback$: transactionsSource$.pipe(map(({ rollback }) => rollback)),
     shutdown: () => {
       inFlight$.complete();
       confirmedSubscription.unsubscribe();

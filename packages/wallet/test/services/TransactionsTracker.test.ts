@@ -3,7 +3,7 @@ import { ChainHistoryProviderStub, mockChainHistoryProvider, queryTransactionsRe
 import { FailedTx, TransactionFailure, createAddressTransactionsProvider, createTransactionsTracker } from '../../src';
 import { InMemoryInFlightTransactionsStore, InMemoryTransactionsStore, WalletStores } from '../../src/persistence';
 import { RetryBackoffConfig } from 'backoff-rxjs';
-import { bufferCount, firstValueFrom, of } from 'rxjs';
+import { bufferCount, firstValueFrom, map, of } from 'rxjs';
 import { createTestScheduler } from '@cardano-sdk/util-dev';
 import delay from 'delay';
 
@@ -29,7 +29,7 @@ describe('TransactionsTracker', () => {
         tip$,
         store
       );
-      expect(await firstValueFrom(provider$)).toEqual(queryTransactionsResult);
+      expect(await firstValueFrom(provider$.pipe(map((v) => v.transactions)))).toEqual(queryTransactionsResult);
       expect(store.setAll).toBeCalledTimes(1);
       expect(store.setAll).toBeCalledWith(queryTransactionsResult);
     });
@@ -46,10 +46,14 @@ describe('TransactionsTracker', () => {
         tip$,
         store
       );
-      expect(await firstValueFrom(provider$.pipe(bufferCount(2)))).toEqual([
-        [queryTransactionsResult[0]],
-        queryTransactionsResult
-      ]);
+      expect(
+        await firstValueFrom(
+          provider$.pipe(
+            map((v) => v.transactions),
+            bufferCount(2)
+          )
+        )
+      ).toEqual([[queryTransactionsResult[0]], queryTransactionsResult]);
       expect(store.setAll).toBeCalledTimes(2);
       expect(chainHistoryProvider.transactionsByAddresses).toBeCalledTimes(1);
       expect(chainHistoryProvider.transactionsByAddresses).toBeCalledWith({
@@ -72,8 +76,8 @@ describe('TransactionsTracker', () => {
         store
       );
       expect(await firstValueFrom(provider$.pipe(bufferCount(2)))).toEqual([
-        queryTransactionsResult,
-        [queryTransactionsResult[0]]
+        { rollback: [], transactions: queryTransactionsResult },
+        { rollback: [queryTransactionsResult[1]], transactions: [queryTransactionsResult[0]] }
       ]);
       expect(store.setAll).toBeCalledTimes(2);
       expect(chainHistoryProvider.transactionsByAddresses).toBeCalledTimes(2);
@@ -111,10 +115,10 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('----|');
         const submitting$ = hot('-a--|', { a: outgoingTx });
         const pending$ = hot('--a-|', { a: outgoingTx });
-        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('a-bc|', {
-          a: { transactions: [] },
-          b: { transactions: [incomingTx] },
-          c: { transactions: [incomingTx, outgoingTx] }
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }>('a-bc|', {
+          a: { rollback: [], transactions: [] },
+          b: { rollback: [], transactions: [incomingTx] },
+          c: { rollback: [], transactions: [incomingTx, outgoingTx] }
         });
         const confirmedSubscription = '--^--'; // regression: subscribing after submitting$ emits
         const transactionsTracker = createTransactionsTracker(
@@ -158,7 +162,7 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('----a|', { a: tip });
         const submitting$ = hot('-a---|', { a: tx });
         const pending$ = hot('---a-|', { a: tx });
-        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('-----|');
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }>('-----|');
         const failedSubscription = '--^---'; // regression: subscribing after submitting$ emits
         const transactionsTracker = createTransactionsTracker(
           {
@@ -198,7 +202,7 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('----|');
         const submitting$ = cold('-a--|', { a: tx });
         const pending$ = cold('--a-|', { a: tx });
-        const transactionsSource$ = cold<{ transactions: Cardano.TxAlonzo[] }>('----|');
+        const transactionsSource$ = cold<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }>('----|');
         const failedToSubmit$ = hot<FailedTx>('---a|', {
           a: { reason: TransactionFailure.FailedToSubmit, tx }
         });
@@ -244,7 +248,7 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('|');
         const submitting$ = hot('--a|', { a: outgoingTx });
         const pending$ = hot<Cardano.TxAlonzo>('|');
-        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('|');
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }>('|');
 
         const transactionsTracker = createTransactionsTracker(
           {
@@ -300,10 +304,10 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('----|');
         const submitting$ = hot<Cardano.NewTxAlonzo>('----|');
         const pending$ = hot<Cardano.TxAlonzo>('----|');
-        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('a-bc|', {
-          a: { transactions: [] },
-          b: { transactions: [incomingTx] },
-          c: { transactions: [incomingTx, outgoingTx] }
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }>('a-bc|', {
+          a: { rollback: [], transactions: [] },
+          b: { rollback: [], transactions: [incomingTx] },
+          c: { rollback: [], transactions: [incomingTx, outgoingTx] }
         });
 
         const transactionsTracker = createTransactionsTracker(
@@ -371,9 +375,9 @@ describe('TransactionsTracker', () => {
         const tip$ = hot<Cardano.Tip>('-----|');
         const submitting$ = hot<Cardano.NewTxAlonzo>('--a--|', { a: outgoingTx });
         const pending$ = hot<Cardano.TxAlonzo>('-----|');
-        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[] }>('a---b|', {
-          a: { transactions: [] },
-          b: { transactions: [incomingTx] }
+        const transactionsSource$ = hot<{ transactions: Cardano.TxAlonzo[]; rollback: Cardano.TxAlonzo[] }>('a---b|', {
+          a: { rollback: [], transactions: [] },
+          b: { rollback: [], transactions: [incomingTx] }
         });
 
         const transactionsTracker = createTransactionsTracker(

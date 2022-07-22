@@ -53,6 +53,7 @@ export interface FailedTx {
 
 export interface TransactionsTracker {
   readonly history$: Observable<Cardano.TxAlonzo[]>;
+  readonly rollback$: Observable<Cardano.TxAlonzo[]>;
   readonly outgoing: {
     readonly inFlight$: Observable<Cardano.NewTxAlonzo[]>;
     readonly submitting$: Observable<Cardano.NewTxAlonzo>;
