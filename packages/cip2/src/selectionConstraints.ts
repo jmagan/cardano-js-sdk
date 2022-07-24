@@ -46,7 +46,7 @@ export const computeMinimumCoinQuantity =
     if (multiasset) {
       value.set_multiasset(coreToCsl.tokenMap(multiasset));
     }
-    return BigInt(CSL.min_ada_required(value, minUTxOValue).to_str());
+    return BigInt(CSL.min_ada_required(value, true, minUTxOValue).to_str());
   };
 
 export const tokenBundleSizeExceedsLimit =

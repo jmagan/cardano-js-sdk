@@ -47,10 +47,18 @@ export const BlockfrostToCore = {
 
   inputs: (inputs: BlockfrostInputs): Cardano.TxIn[] => inputs.map((input) => BlockfrostToCore.txIn(input)),
 
-  outputFromUtxo: (address: string, utxo: BlockfrostUtxo): BlockfrostOutput => ({
-    address,
-    amount: utxo.amount
-  }),
+  outputFromUtxo: (address: string, utxo: BlockfrostUtxo): BlockfrostOutput => {
+
+    const output : BlockfrostOutput = {
+      address,
+      amount: utxo.amount
+    }
+
+    if (utxo.data_hash && utxo.data_hash !== null)
+      output.amount.find(({ unit }) => unit === 'lovelace')!.data_hash = utxo.data_hash
+
+    return output
+  },
 
   outputs: (outputs: BlockfrostOutputs): Cardano.TxOut[] => outputs.map((output) => BlockfrostToCore.txOut(output)),
 
@@ -78,12 +86,18 @@ export const BlockfrostToCore = {
       if (unit === 'lovelace') continue;
       assets.set(Cardano.AssetId(unit), BigInt(quantity));
     }
+    
+    let data_hash: Cardano.Hash32ByteBase16 | undefined = undefined
+    if (blockfrost.amount.find(({ unit }) => unit === 'lovelace')?.data_hash !== undefined)
+      data_hash = Cardano.Hash32ByteBase16(blockfrost.amount.find(({ unit }) => unit === 'lovelace')?.data_hash as string)
+
     return {
       address: Cardano.Address(blockfrost.address),
       value: {
         assets,
         coins: BigInt(blockfrost.amount.find(({ unit }) => unit === 'lovelace')!.quantity)
-      }
+      },
+      datum: data_hash
     };
   }
 };
