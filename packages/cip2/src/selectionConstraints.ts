@@ -41,7 +41,7 @@ export const computeMinimumCost =
 export const computeMinimumCoinQuantity =
   (coinsPerUtxoWord: ProtocolParametersRequiredByInputSelection['coinsPerUtxoWord']): ComputeMinimumCoinQuantity =>
   (multiasset) => {
-    const minUTxOValue = CSL.BigNum.from_str((coinsPerUtxoWord * 29).toString());
+    const minUTxOValue = CSL.BigNum.from_str((coinsPerUtxoWord).toString());
     const value = CSL.Value.new(CSL.BigNum.from_str('0'));
     if (multiasset) {
       value.set_multiasset(coreToCsl.tokenMap(multiasset));
